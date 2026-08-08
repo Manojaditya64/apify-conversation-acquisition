@@ -1,0 +1,19 @@
+{
+  "scraped_at": "2026-08-07T11:38:19+05:30",
+  "account_count": 2,
+  "posts": [
+    {
+      "type": "post",
+      "id": "example-post-id",
+      "linkedinUrl": "https://www.linkedin.com/posts/example-activity-123",
+      "content": "Example influencer post about AI search and content operations...",
+      "author": {
+        "name": "Example Author",
+        "info": "Founder at Example SaaS",
+        "linkedinUrl": "https://www.linkedin.com/in/example/"
+      },
+      "engagement": { "likes": 5, "comments": 2 },
+      "postedAt": { "date": "2026-08-07T08:00:00.000Z" }
+    }
+  ]
+}

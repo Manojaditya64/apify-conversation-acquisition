@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Conversation Inbox</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    .card-done { opacity: 0.55; }
+    .card-done.card-active-thread { opacity: 0.85; }
+    .card-skipped { opacity: 0.4; }
+    .score-bar { height: 6px; border-radius: 3px; background: #1e293b; overflow: hidden; }
+    .score-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #6366f1); border-radius: 3px; }
+    .chip.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+    .card-focus { outline: 2px solid #6366f1; outline-offset: 2px; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    kbd { font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 0.25rem; background: #334155; color: #e2e8f0; }
+    .reply-opt.selected { border-color: #6366f1; background: #1e1b4b; }
+  </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 min-h-screen">
+  <div id="app" class="max-w-4xl mx-auto px-4 py-6 pb-24">
+    <header class="mb-6 sticky top-0 z-20 bg-slate-950/95 backdrop-blur border-b border-slate-800 pb-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div>
+          <h1 class="text-xl font-semibold tracking-tight">Conversation Inbox</h1>
+          <p class="text-sm text-slate-400" id="meta-line">Loading…</p>
+        </div>
+        <div class="flex flex-wrap gap-2 items-center">
+          <label class="text-xs text-slate-500">Day</label>
+          <select id="day-picker" class="bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-slate-200 text-xs max-w-[220px]"></select>
+          <button type="button" id="day-prev" class="text-xs px-2 py-1.5 rounded border border-slate-600 hover:bg-slate-800" title="Previous day">&#8592;</button>
+          <button type="button" id="day-next" class="text-xs px-2 py-1.5 rounded border border-slate-600 hover:bg-slate-800" title="Next day">&#8594;</button>
+          <span id="sync-status" class="text-xs px-2 py-1 rounded-full border border-slate-700 text-slate-500">Checking…</span>
+        </div>
+      </div>
+      <div class="mb-3">
+        <input id="search-box" type="search" placeholder="Search author or post… (/)" class="w-full mb-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500" />
+        <div class="flex justify-between text-xs text-slate-400 mb-1">
+          <span id="progress-text">0 / 0</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width:0%"></div>
+        </div>
+      </div>
+      <details id="filter-panel" class="mb-2">
+        <summary class="text-xs text-slate-400 cursor-pointer mb-2 select-none">Filters</summary>
+        <div class="flex flex-wrap gap-2 mb-2" id="filter-pipeline">
+          <span class="text-xs text-slate-500 w-full">Pipeline</span>
+          <button data-filter="pipeline" data-value="all" class="chip active px-2.5 py-1 text-xs rounded-full border border-slate-600">All</button>
+          <button data-filter="pipeline" data-value="keyword" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">Keywords</button>
+          <button data-filter="pipeline" data-value="icp_warm" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">ICP Warm</button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-2" id="filter-priority">
+          <span class="text-xs text-slate-500 w-full">Priority</span>
+          <button data-filter="priority" data-value="all" class="chip active px-2.5 py-1 text-xs rounded-full border border-slate-600">All</button>
+          <button data-filter="priority" data-value="high" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">High priority</button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-2" id="filter-room">
+          <span class="text-xs text-slate-500 w-full">Room</span>
+          <button data-filter="room" data-value="all" class="chip active px-2.5 py-1 text-xs rounded-full border border-slate-600">All</button>
+          <button data-filter="room" data-value="buyer" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">Buyer room</button>
+          <button data-filter="room" data-value="discovery" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">Discovery</button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-2" id="filter-topic">
+          <span class="text-xs text-slate-500 w-full">Topic</span>
+          <button data-filter="topic" data-value="all" class="chip active px-2.5 py-1 text-xs rounded-full border border-slate-600">All topics</button>
+          <button data-filter="topic" data-value="geo" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">GEO</button>
+          <button data-filter="topic" data-value="seo" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">SEO</button>
+          <button data-filter="topic" data-value="ai" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">AI Search</button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-2" id="filter-language">
+          <span class="text-xs text-slate-500 w-full">Language</span>
+          <button data-filter="language" data-value="english" class="chip active px-2.5 py-1 text-xs rounded-full border border-slate-600">English only</button>
+          <button data-filter="language" data-value="all" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">All languages</button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-2" id="filter-status">
+          <span class="text-xs text-slate-500 w-full">Status</span>
+          <button data-filter="status" data-value="unread" class="chip active px-2.5 py-1 text-xs rounded-full border border-slate-600">Unread</button>
+          <button data-filter="status" data-value="all" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">All</button>
+          <button data-filter="status" data-value="completed" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">Completed</button>
+          <button data-filter="status" data-value="awaiting_reply" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">Awaiting reply</button>
+          <button data-filter="status" data-value="needs_reply" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">Needs my reply</button>
+          <button data-filter="status" data-value="thread_done" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">Thread done</button>
+          <button data-filter="status" data-value="skipped" class="chip px-2.5 py-1 text-xs rounded-full border border-slate-600">Skipped</button>
+        </div>
+      </details>
+      <div class="flex items-center gap-2 text-xs text-slate-500">
+        <label>Sort</label>
+        <select id="sort-by" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs">
+          <option value="priority">Priority</option>
+          <option value="urgency">Urgency</option>
+          <option value="newest">Newest</option>
+        </select>
+        <span class="ml-auto hidden sm:inline">Shortcuts: <kbd>j</kbd><kbd>k</kbd> <kbd>[</kbd><kbd>]</kbd> day <kbd>1-5</kbd> <kbd>o</kbd> <kbd>c</kbd> <kbd>s</kbd> <kbd>/</kbd> <kbd>r</kbd></span>
+      </div>
+    </header>
+    <div id="cards" class="space-y-4"></div>
+    <p id="empty-msg" class="hidden text-center text-slate-500 py-12">No cards match filters.</p>
+  </div>
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm shadow-xl opacity-0 pointer-events-none transition-opacity z-50"></div>
+  <div id="offline-banner" class="hidden fixed top-0 inset-x-0 z-50 bg-amber-950 border-b border-amber-700 text-amber-100 text-sm text-center py-2 px-4">
+    Auto-save off — double-click <strong>Open Inbox.cmd</strong> in this folder.
+  </div>
+  <script id="inbox-data" type="application/json">__INBOX_DATA__</script>
+  <script>
+    const STORAGE_KEY = 'conversation-inbox-state-v2';
+    const DRAFT_KEY = 'conversation-inbox-drafts-v1';
+    const DAY_KEY = 'inbox-selected-date-v1';
+    const SCORE_LABELS = {
+      zelitho_alignment: 'Zelitho', icp_audience_likelihood: 'ICP room',
+      contribution_opportunity: 'Contribution', room_to_stand_out: 'Stand out',
+      traction_urgency: 'Traction', profile_visit_potential: 'Profile visits',
+    };
+    const TYPE_LABELS = {
+      educational: 'Educational', opinion: 'Opinion', research: 'Research',
+      product_launch: 'Product launch', debate: 'Debate', question: 'Question',
+      agency_promo: 'Agency promo', hype_listicle: 'Hype listicle',
+    };
+
+    let RAW = JSON.parse(document.getElementById('inbox-data').textContent);
+    if (!RAW.days) {
+      RAW.days = [{
+        run_date: RAW.run_date,
+        queue_file: RAW.queue_file,
+        icp_queue_file: RAW.icp_queue_file,
+        card_count: RAW.card_count,
+        keyword_count: RAW.keyword_count,
+        icp_count: RAW.icp_count,
+        cards: RAW.cards || [],
+      }];
+      RAW.default_date = RAW.run_date;
+      RAW.day_count = 1;
+    }
+    let selectedDate = RAW.default_date || (RAW.days[0] && RAW.days[0].run_date) || '';
+    let DATA = {};
+    let state = loadState();
+    let drafts = loadDrafts();
+    let filters = { pipeline: 'all', priority: 'all', room: 'all', topic: 'all', language: 'english', status: 'unread' };
+    let searchQuery = '';
+    let sortBy = 'priority';
+    let focusIndex = 0;
+    let visibleCards = [];
+    let serverOk = false;
+    let openReplyPanels = new Set();
+    let draftSaveTimer = null;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('conversation-inbox-state-v1') || '{}';
+        return JSON.parse(raw);
+      } catch { return {}; }
+    }
+    function loadDrafts() {
+      try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}'); } catch { return {}; }
+    }
+    function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    function saveDrafts() { localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts)); }
+    function debounceSaveDrafts() {
+      clearTimeout(draftSaveTimer);
+      draftSaveTimer = setTimeout(saveDrafts, 400);
+    }
+
+    function dayUnreadCount(day) {
+      return (day.cards || []).filter(c => cardState(c.post_id).status === 'unread').length;
+    }
+
+    function formatDayOption(day) {
+      const d = new Date(day.run_date + 'T12:00:00');
+      const label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      const unread = dayUnreadCount(day);
+      const parts = [`${label} · ${day.card_count} cards`];
+      if (unread > 0) parts.push(`${unread} unread`);
+      if (day.icp_count) parts.push(`${day.icp_count} ICP`);
+      return parts.join(' · ');
+    }
+
+    function applyDay(runDate) {
+      const day = RAW.days.find(d => d.run_date === runDate) || RAW.days[0];
+      if (!day) return;
+      selectedDate = day.run_date;
+      DATA = {
+        built_at: RAW.built_at,
+        default_date: RAW.default_date,
+        day_count: RAW.day_count,
+        days: RAW.days,
+        run_date: day.run_date,
+        queue_file: day.queue_file,
+        icp_queue_file: day.icp_queue_file,
+        card_count: day.card_count,
+        keyword_count: day.keyword_count,
+        icp_count: day.icp_count,
+        cards: day.cards || [],
+      };
+    }
+
+    function initDayPicker() {
+      const picker = document.getElementById('day-picker');
+      picker.innerHTML = '';
+      RAW.days.forEach(day => {
+        const opt = document.createElement('option');
+        opt.value = day.run_date;
+        opt.textContent = formatDayOption(day);
+        picker.appendChild(opt);
+      });
+      const saved = localStorage.getItem(DAY_KEY);
+      if (saved && RAW.days.some(d => d.run_date === saved)) selectedDate = saved;
+      else selectedDate = RAW.default_date || RAW.days[0].run_date;
+      picker.value = selectedDate;
+      applyDay(selectedDate);
+    }
+
+    function switchDay(runDate) {
+      if (!RAW.days.some(d => d.run_date === runDate)) return;
+      selectedDate = runDate;
+      localStorage.setItem(DAY_KEY, selectedDate);
+      document.getElementById('day-picker').value = selectedDate;
+      applyDay(selectedDate);
+      focusIndex = 0;
+      render();
+    }
+
+    function shiftDay(delta) {
+      const idx = RAW.days.findIndex(d => d.run_date === selectedDate);
+      if (idx < 0) return;
+      const next = idx + delta;
+      if (next < 0 || next >= RAW.days.length) return;
+      switchDay(RAW.days[next].run_date);
+    }
+
+    function cardState(id) {
+      return state[id] || { status: 'unread', chosen_variant: 'A', last_copied: 'A' };
+    }
+    function getDraft(pid) {
+      return drafts[pid] || { posted_comment: '', author_reply: '', selected_reply: 'A', reply_id: '' };
+    }
+    function setDraft(pid, patch) {
+      drafts[pid] = { ...getDraft(pid), ...patch };
+      debounceSaveDrafts();
+    }
+
+    function postedCommentFor(card) {
+      const d = getDraft(card.post_id);
+      if (d.posted_comment) return d.posted_comment;
+      const eng = card.engagement || {};
+      if (eng.posted_comment) return eng.posted_comment;
+      const cs = cardState(card.post_id);
+      return (card.variants || {})[cs.chosen_variant || cs.last_copied || 'A'] || '';
+    }
+
+    function threadPhase(card) {
+      const cs = cardState(card.post_id);
+      if (cs.status !== 'completed') return 'none';
+      const chain = card.reply_chain || [];
+      if (chain.some(r => r.posted_reply)) return 'thread_done';
+      if (chain.some(r => (r.options && Object.keys(r.options).length) && !r.posted_reply)) return 'needs_reply';
+      if (chain.some(r => r.author_reply) || getDraft(card.post_id).author_reply) return 'needs_reply';
+      return 'awaiting_reply';
+    }
+
+    function threadBadge(card) {
+      const phase = threadPhase(card);
+      if (phase === 'awaiting_reply') return '<span class="text-xs px-2 py-0.5 rounded bg-sky-900/50 text-sky-300">Commented</span>';
+      if (phase === 'needs_reply') return '<span class="text-xs px-2 py-0.5 rounded bg-amber-900/50 text-amber-300">Needs reply</span>';
+      if (phase === 'thread_done') return '<span class="text-xs px-2 py-0.5 rounded bg-violet-900/50 text-violet-300">Replied back</span>';
+      return '';
+    }
+
+    function setCardState(id, patch) {
+      state[id] = { ...cardState(id), ...patch };
+      saveState();
+      render();
+      if (patch.status === 'completed' || patch.status === 'skipped') {
+        pushActionToServer(id);
+      }
+    }
+
+    function buildAction(pid) {
+      const card = DATA.cards.find(c => c.post_id === pid);
+      const cs = cardState(pid);
+      if (!card || (cs.status !== 'completed' && cs.status !== 'skipped')) return null;
+      const posted = postedCommentFor(card);
+      return {
+        post_id: pid, queue_id: card.queue_id, status: cs.status,
+        chosen_variant: cs.chosen_variant || 'A',
+        commented_at: cs.completed_at || cs.skipped_at || new Date().toISOString(),
+        post_url: card.post_url, author_name: card.author_name,
+        priority_score: card.priority_score,
+        posted_comment: posted,
+        variant_text: posted,
+      };
+    }
+
+    async function pushActionToServer(pid) {
+      if (!serverOk) return;
+      const action = buildAction(pid);
+      if (!action) return;
+      try {
+        const r = await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(action) });
+        if (!r.ok) throw new Error();
+        toast(action.status === 'completed' ? 'Saved to CSV ✓' : 'Skipped & saved ✓');
+      } catch { toast('CSV save failed — is Open Inbox.cmd running?'); }
+    }
+
+    function updateSyncStatus() {
+      const el = document.getElementById('sync-status');
+      const banner = document.getElementById('offline-banner');
+      if (serverOk) {
+        el.textContent = 'Auto-save on';
+        el.className = 'text-xs px-2 py-1 rounded-full border border-emerald-700 bg-emerald-950 text-emerald-300';
+        banner.classList.add('hidden');
+      } else {
+        el.textContent = 'Auto-save off';
+        el.className = 'text-xs px-2 py-1 rounded-full border border-amber-700 bg-amber-950 text-amber-300';
+        banner.classList.remove('hidden');
+      }
+    }
+
+    async function checkServer() {
+      try { serverOk = (await fetch('/api/health')).ok; } catch { serverOk = false; }
+      updateSyncStatus();
+    }
+
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.remove('opacity-0');
+      setTimeout(() => el.classList.add('opacity-0'), 2200);
+    }
+
+    function urgencyClass(tier) {
+      if (tier === 'immediate') return 'bg-red-500/20 text-red-300 border-red-500/40';
+      if (tier === 'today') return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+      return 'bg-slate-700 text-slate-300 border-slate-600';
+    }
+    function priorityBadgeClass(score) {
+      if (score >= 75) return 'bg-indigo-500 text-white';
+      if (score >= 65) return 'bg-blue-600 text-white';
+      return 'bg-slate-600 text-slate-100';
+    }
+    function inspectorBadge(s) {
+      if (s === 'all_pass') return '<span class="text-xs px-2 py-0.5 rounded bg-emerald-900/50 text-emerald-300">Inspector OK</span>';
+      if (s === 'manual_review') return '<span class="text-xs px-2 py-0.5 rounded bg-amber-900/50 text-amber-300">Review variants</span>';
+      if (s && s.startsWith('repaired')) return '<span class="text-xs px-2 py-0.5 rounded bg-sky-900/50 text-sky-300">Repaired</span>';
+      return '';
+    }
+    function proBadge(model) {
+      if (!model) return '';
+      const m = String(model).toLowerCase();
+      if (m.includes('pro')) return '<span class="text-xs px-2 py-0.5 rounded bg-violet-900/60 text-violet-200 border border-violet-700/50">Pro</span>';
+      return '';
+    }
+
+    function matchesTopic(card, topic) {
+      const blob = [card.search_query, ...(card.topic_tags || []), card.post_preview].join(' ').toLowerCase();
+      if (topic === 'geo') return /\bgeo\b|generative engine/.test(blob);
+      if (topic === 'seo') return /\bseo\b|serp|organic|search engine/.test(blob);
+      if (topic === 'ai') return /ai search|llm|chatgpt|perplexity|aeo|visibility|zero.?click|citation/.test(blob);
+      return true;
+    }
+
+    function matchesSearch(card) {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const blob = [card.author_name, card.author_headline, card.post_preview, card.post_full, card.search_query].join(' ').toLowerCase();
+      return blob.includes(q);
+    }
+
+    function filterCards() {
+      return DATA.cards.filter(card => {
+        const cs = cardState(card.post_id);
+        const phase = threadPhase(card);
+        if (filters.pipeline === 'keyword' && card.pipeline !== 'keyword') return false;
+        if (filters.pipeline === 'icp_warm' && card.pipeline !== 'icp_warm') return false;
+        if (filters.priority === 'high' && !(card.priority_score >= 70 || card.urgency_tier === 'immediate')) return false;
+        if (filters.room === 'buyer' && !['buyer_leader', 'operator'].includes(card.author_persona)) return false;
+        if (filters.room === 'discovery' && card.pipeline !== 'keyword') return false;
+        if (filters.room === 'discovery' && card.source !== 'post_search_v2' && card.source !== 'post_search') return false;
+        if (!matchesTopic(card, filters.topic)) return false;
+        if (filters.language === 'english' && card.is_english === false) return false;
+        if (!matchesSearch(card)) return false;
+        if (filters.status === 'unread' && cs.status !== 'unread') return false;
+        if (filters.status === 'completed' && cs.status !== 'completed') return false;
+        if (filters.status === 'skipped' && cs.status !== 'skipped') return false;
+        if (filters.status === 'awaiting_reply' && phase !== 'awaiting_reply') return false;
+        if (filters.status === 'needs_reply' && phase !== 'needs_reply') return false;
+        if (filters.status === 'thread_done' && phase !== 'thread_done') return false;
+        return true;
+      }).sort((a, b) => {
+        if (sortBy === 'newest') return (b.post_posted_at || '').localeCompare(a.post_posted_at || '');
+        if (sortBy === 'urgency') {
+          const order = { immediate: 0, today: 1, normal: 2 };
+          return (order[a.urgency_tier] ?? 2) - (order[b.urgency_tier] ?? 2);
+        }
+        return (b.priority_score || 0) - (a.priority_score || 0);
+      });
+    }
+
+    function scoreBars(scores) {
+      return Object.entries(SCORE_LABELS).map(([key, label]) => {
+        const v = scores[key] || 0;
+        return `<div class="mb-1.5"><div class="flex justify-between text-xs text-slate-400 mb-0.5"><span>${label}</span><span>${Math.round(v)}</span></div><div class="score-bar"><div class="score-fill" style="width:${Math.min(100, v)}%"></div></div></div>`;
+      }).join('');
+    }
+
+    function renderReplyPanel(card) {
+      const pid = card.post_id;
+      const done = cardState(pid).status === 'completed';
+      if (!done) return '';
+      const draft = getDraft(pid);
+      const chain = card.reply_chain || [];
+      const latest = chain.length ? chain[chain.length - 1] : null;
+      const options = latest?.options || {};
+      const open = openReplyPanels.has(pid) || phaseNeedsAttention(card);
+      const history = chain.filter(r => r.posted_reply).map(r =>
+        `<div class="text-xs text-slate-500 border-l-2 border-slate-700 pl-2 mb-2"><span class="text-slate-400">They:</span> ${esc((r.author_reply || '').slice(0, 120))}<br><span class="text-slate-400">You:</span> ${esc((r.posted_reply || '').slice(0, 120))}</div>`
+      ).join('');
+
+      const optRows = ['A','B','C'].map(l => {
+        const t = options[l] || '';
+        if (!t) return '';
+        const sel = draft.selected_reply === l ? 'selected' : '';
+        return `<div class="reply-opt ${sel} flex gap-2 items-start py-2 px-2 rounded border border-slate-700 mb-1" data-reply-opt="${l}" data-pid="${pid}">
+          <span class="text-xs font-mono text-slate-500">${l}</span>
+          <p class="text-sm text-slate-300 flex-1">${esc(t)}</p>
+          <button type="button" data-copy-reply="${l}" data-pid="${pid}" class="text-xs px-2 py-1 rounded border border-slate-600 hover:bg-slate-800">Copy</button>
+        </div>`;
+      }).join('');
+
+      return `<details class="mt-4 thread-reply-panel" data-reply-panel="${pid}" ${open ? 'open' : ''}>
+        <summary class="text-sm font-medium text-indigo-300 cursor-pointer">Thread reply</summary>
+        <div class="mt-3 space-y-3 p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+          ${history}
+          <label class="block text-xs text-slate-500">Your posted comment</label>
+          <textarea data-posted-comment="${pid}" rows="2" class="w-full text-sm bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-slate-200">${esc(postedCommentFor(card))}</textarea>
+          <label class="block text-xs text-slate-500">Author's reply</label>
+          <textarea data-author-reply="${pid}" rows="2" class="w-full text-sm bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-slate-200" placeholder="Paste their reply…">${esc(draft.author_reply || latest?.author_reply || '')}</textarea>
+          <button type="button" data-generate-reply="${pid}" class="text-xs px-3 py-1.5 rounded bg-indigo-700 hover:bg-indigo-600 ${serverOk ? '' : 'opacity-50 cursor-not-allowed'}" ${serverOk ? '' : 'disabled'}>Generate replies</button>
+          ${optRows ? `<div class="mt-2"><p class="text-xs text-slate-500 mb-1">Pick a reply (no yes-man fluff)</p>${optRows}
+            <button type="button" data-mark-reply-posted="${pid}" class="mt-2 text-xs px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600">Mark reply posted</button></div>` : ''}
+        </div>
+      </details>`;
+    }
+
+    function phaseNeedsAttention(card) {
+      return threadPhase(card) === 'needs_reply';
+    }
+
+    function renderCard(card, idx) {
+      const cs = cardState(card.post_id);
+      const done = cs.status === 'completed';
+      const skipped = cs.status === 'skipped';
+      const focus = idx === focusIndex ? 'card-focus' : '';
+      const activeThread = done && (phaseNeedsAttention(card) || openReplyPanels.has(card.post_id));
+      const statusCls = done ? `card-done${activeThread ? ' card-active-thread' : ''}` : skipped ? 'card-skipped' : '';
+      const chosen = cs.chosen_variant || cs.last_copied || 'A';
+      const variants = card.variants || {};
+      const threadHtml = (card.thread_snippets || []).length
+        ? `<div class="mt-2 text-xs text-slate-500"><span class="text-slate-400">Thread:</span> ${card.thread_snippets.slice(0, 2).map(s => esc(s.slice(0, 120)) + '…').join(' · ')}</div>` : '';
+
+      const VARIANT_ORDER = ['A','E','D','C','B'];
+      const variantRows = VARIANT_ORDER.map(l => {
+        const text = variants[l] || '';
+        if (!text) return '';
+        return `<div class="flex gap-2 items-start py-2 border-t border-slate-800 first:border-0">
+          <span class="text-xs font-mono text-slate-500 w-4 pt-0.5">${l}</span>
+          <p class="text-sm text-slate-300 flex-1">${esc(text)}</p>
+          <button type="button" data-copy="${l}" data-pid="${card.post_id}" class="shrink-0 text-xs px-2 py-1 rounded border border-slate-600 hover:bg-slate-800">Copy</button>
+        </div>`;
+      }).join('');
+
+      const postedField = !done ? `
+        <label class="block text-xs text-slate-500 mt-2">Comment you'll post (edit if needed)</label>
+        <textarea data-posted-comment="${card.post_id}" rows="2" class="w-full text-sm bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-slate-200">${esc(postedCommentFor(card))}</textarea>` : '';
+
+      const isIcp = card.pipeline === 'icp_warm';
+      const priorityCol = isIcp
+        ? `<div class="text-sm font-semibold px-3 py-2 rounded-lg bg-teal-900/60 text-teal-200 border border-teal-700">ICP Warm</div>
+           <span class="text-xs px-2 py-0.5 rounded border border-teal-800 text-teal-300">peer</span>`
+        : `<div class="text-2xl font-bold px-3 py-2 rounded-lg ${priorityBadgeClass(card.priority_score)}">${Math.round(card.priority_score)}</div>
+           <span class="text-xs px-2 py-0.5 rounded border ${urgencyClass(card.urgency_tier)}">${card.urgency_tier}</span>`;
+
+      const intelBlock = isIcp ? '' : `
+            <div class="mt-3 p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+              <p class="text-xs text-slate-500 mb-1">Why selected</p>
+              <p class="text-sm text-slate-300 mb-2">${esc(card.why_selected || '—')}</p>
+              <div class="grid grid-cols-2 gap-x-4">${scoreBars(card.scores || {})}</div>
+            </div>`;
+
+      const icpNote = isIcp ? `<p class="text-xs text-teal-400/80 mb-2">${esc(card.why_selected || '')}</p>` : '';
+
+      return `<article class="card rounded-xl border border-slate-800 bg-slate-900/80 p-4 ${statusCls} ${focus}" data-pid="${card.post_id}" data-idx="${idx}">
+        <div class="flex gap-4">
+          <div class="flex flex-col items-center gap-1">
+            ${priorityCol}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+              ${card.author_avatar ? `<img src="${esc(card.author_avatar)}" class="w-10 h-10 rounded-full object-cover" alt="" />` : '<div class="w-10 h-10 rounded-full bg-slate-700"></div>'}
+              <div class="min-w-0 flex-1">
+                <a href="${esc(card.author_linkedin)}" target="_blank" rel="noopener" class="font-medium text-slate-100 hover:text-indigo-300 truncate block">${esc(card.author_name)}</a>
+                <p class="text-xs text-slate-400 line-clamp-2">${esc(card.author_headline)}</p>
+              </div>
+              ${isIcp ? '<span class="text-xs px-2 py-0.5 rounded bg-teal-900/50 text-teal-300">ICP Warm</span>' : inspectorBadge(card.inspector_status)}
+              ${!isIcp ? proBadge(card.comment_model) : ''}
+              ${!isIcp ? threadBadge(card) : ''}
+              ${card.is_english === false ? '<span class="text-xs px-2 py-0.5 rounded bg-rose-900/50 text-rose-300">Non-English</span>' : ''}
+              ${!isIcp ? `<span class="text-xs text-slate-500">${card.engagement_likes} likes · ${card.engagement_comments} comments</span>` : ''}
+            </div>
+            <p class="text-sm text-slate-300 line-clamp-3 mb-1">${esc(card.post_preview)}</p>
+            <details class="mb-2"><summary class="text-xs text-indigo-400 cursor-pointer">Show full post</summary><p class="text-sm text-slate-400 mt-2 whitespace-pre-wrap">${esc(card.post_full)}</p></details>
+            ${threadHtml}
+            ${icpNote}
+            ${intelBlock}
+            <details class="mt-3" ${done ? '' : 'open'}>
+              <summary class="text-sm font-medium text-slate-300 cursor-pointer mb-2">Comment variants</summary>
+              ${variantRows}
+            </details>
+            ${postedField}
+            <div class="flex flex-wrap gap-2 mt-4 items-center">
+              ${VARIANT_ORDER.map(l => `<button type="button" data-copy="${l}" data-pid="${card.post_id}" class="text-xs px-2.5 py-1.5 rounded border border-slate-600 hover:bg-slate-800">${l}</button>`).join('')}
+              <a href="${esc(card.post_url)}" target="_blank" rel="noopener" class="text-xs px-2.5 py-1.5 rounded border border-slate-600 hover:bg-slate-800">Open LinkedIn</a>
+              ${!done ? `<select data-variant-select="${card.post_id}" class="text-xs bg-slate-800 border border-slate-700 rounded px-2 py-1.5">${VARIANT_ORDER.map(l => `<option value="${l}" ${l===chosen?'selected':''}>${l}</option>`).join('')}</select>
+              <button type="button" data-complete="${card.post_id}" class="text-xs px-2.5 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600">Done</button>
+              <button type="button" data-skip="${card.post_id}" class="text-xs px-2.5 py-1.5 rounded border border-slate-600 hover:bg-slate-800">Skip</button>` : ''}
+            </div>
+            ${isIcp ? '' : renderReplyPanel(card)}
+          </div>
+        </div>
+      </article>`;
+    }
+
+    function esc(s) {
+      if (!s) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function updateProgress() {
+      const total = DATA.cards.length;
+      const skipped = DATA.cards.filter(c => cardState(c.post_id).status === 'skipped').length;
+      const awaiting = DATA.cards.filter(c => threadPhase(c) === 'awaiting_reply').length;
+      const needsReply = DATA.cards.filter(c => threadPhase(c) === 'needs_reply').length;
+      const replied = DATA.cards.filter(c => threadPhase(c) === 'thread_done').length;
+      const commented = awaiting + needsReply + replied;
+      const unread = total - commented - skipped;
+      const handled = commented + skipped;
+      const pct = total ? Math.round((handled / total) * 100) : 0;
+      document.getElementById('progress-text').textContent =
+        `${unread} left · ${commented} commented · ${needsReply} need reply · ${replied} replied · ${skipped} skipped`;
+      document.getElementById('progress-pct').textContent = pct + '%';
+      document.getElementById('progress-bar').style.width = pct + '%';
+      const hidden = total - visibleCards.length;
+      const hiddenNote = hidden > 0 ? ` · ${hidden} hidden by filter` : '';
+      const kw = DATA.keyword_count != null ? DATA.keyword_count : DATA.cards.filter(c => c.pipeline !== 'icp_warm').length;
+      const icp = DATA.icp_count != null ? DATA.icp_count : DATA.cards.filter(c => c.pipeline === 'icp_warm').length;
+      const pipelineNote = icp > 0 ? ` · ${kw} keyword · ${icp} ICP` : '';
+      document.getElementById('meta-line').textContent =
+        `${DATA.run_date || ''} · ${total} cards${pipelineNote} · ${visibleCards.length} shown${hiddenNote}`;
+    }
+
+    function scrollToFocus() {
+      const card = document.querySelector(`.card[data-idx="${focusIndex}"]`);
+      if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    function render() {
+      visibleCards = filterCards();
+      const container = document.getElementById('cards');
+      document.getElementById('empty-msg').classList.toggle('hidden', visibleCards.length > 0);
+      if (focusIndex >= visibleCards.length) focusIndex = Math.max(0, visibleCards.length - 1);
+      container.innerHTML = visibleCards.map((c, i) => renderCard(c, i)).join('');
+      updateProgress();
+      bindCardEvents();
+      scrollToFocus();
+    }
+
+    function copyVariant(pid, label) {
+      const card = DATA.cards.find(c => c.post_id === pid);
+      if (!card) return;
+      const text = (card.variants || {})[label];
+      if (!text) { toast('Variant empty'); return; }
+      navigator.clipboard.writeText(text).then(() => {
+        setDraft(pid, { posted_comment: text });
+        state[pid] = { ...cardState(pid), last_copied: label, chosen_variant: label };
+        saveState();
+        const ta = document.querySelector(`[data-posted-comment="${pid}"]`);
+        if (ta) ta.value = text;
+        toast(`Copied variant ${label}`);
+      }).catch(() => toast('Copy failed'));
+    }
+
+    async function generateReply(pid) {
+      if (!serverOk) { toast('Open Inbox.cmd required for reply generation'); return; }
+      const card = DATA.cards.find(c => c.post_id === pid);
+      const authorReply = (document.querySelector(`[data-author-reply="${pid}"]`)?.value || '').trim();
+      const posted = (document.querySelector(`[data-posted-comment="${pid}"]`)?.value || '').trim();
+      if (!authorReply) { toast('Paste author reply first'); return; }
+      setDraft(pid, { author_reply: authorReply, posted_comment: posted });
+      toast('Generating…');
+      try {
+        const r = await fetch('/api/generate-reply', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ post_id: pid, author_reply: authorReply, posted_comment: posted }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'failed');
+        card.reply_chain = card.reply_chain || [];
+        card.reply_chain.push({ id: data.reply_id, author_reply: authorReply, options: data.options, posted_reply: '' });
+        setDraft(pid, { reply_id: data.reply_id, selected_reply: 'A' });
+        openReplyPanels.add(pid);
+        render();
+        toast('3 reply options ready');
+      } catch (e) { toast('Generate failed: ' + (e.message || '')); }
+    }
+
+    async function markReplyPosted(pid) {
+      const card = DATA.cards.find(c => c.post_id === pid);
+      const draft = getDraft(pid);
+      const chain = card.reply_chain || [];
+      const latest = chain[chain.length - 1];
+      if (!latest) { toast('Generate replies first'); return; }
+      const opt = draft.selected_reply || 'A';
+      const posted = (latest.options || {})[opt] || '';
+      if (!posted) { toast('Select a reply option'); return; }
+      if (!serverOk) { toast('Open Inbox.cmd required'); return; }
+      try {
+        const r = await fetch('/api/reply-posted', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ post_id: pid, reply_id: latest.id, chosen_option: opt, posted_reply: posted }),
+        });
+        if (!r.ok) throw new Error();
+        latest.chosen_option = opt;
+        latest.posted_reply = posted;
+        latest.posted_at = new Date().toISOString();
+        render();
+        toast('Reply saved ✓');
+      } catch { toast('Save failed'); }
+    }
+
+    function bindCardEvents() {
+      document.querySelectorAll('[data-copy]').forEach(btn => {
+        btn.onclick = () => copyVariant(btn.dataset.pid, btn.dataset.copy);
+      });
+      document.querySelectorAll('[data-copy-reply]').forEach(btn => {
+        btn.onclick = () => {
+          const card = DATA.cards.find(c => c.post_id === btn.dataset.pid);
+          const chain = card?.reply_chain || [];
+          const latest = chain[chain.length - 1];
+          const text = latest?.options?.[btn.dataset.copyReply] || '';
+          navigator.clipboard.writeText(text).then(() => {
+            setDraft(btn.dataset.pid, { selected_reply: btn.dataset.copyReply });
+            toast('Copied reply ' + btn.dataset.copyReply);
+          });
+        };
+      });
+      document.querySelectorAll('[data-reply-opt]').forEach(el => {
+        el.onclick = () => { setDraft(el.dataset.pid, { selected_reply: el.dataset.replyOpt }); render(); };
+      });
+      document.querySelectorAll('[data-complete]').forEach(btn => {
+        btn.onclick = () => {
+          const pid = btn.dataset.complete;
+          const sel = document.querySelector(`[data-variant-select="${pid}"]`);
+          const v = sel ? sel.value : 'A';
+          const posted = (document.querySelector(`[data-posted-comment="${pid}"]`)?.value || '').trim();
+          setDraft(pid, { posted_comment: posted || (DATA.cards.find(c=>c.post_id===pid)?.variants||{})[v] || '' });
+          setCardState(pid, { status: 'completed', chosen_variant: v, completed_at: new Date().toISOString() });
+        };
+      });
+      document.querySelectorAll('[data-skip]').forEach(btn => {
+        btn.onclick = () => setCardState(btn.dataset.skip, { status: 'skipped', skipped_at: new Date().toISOString() });
+      });
+      document.querySelectorAll('[data-variant-select]').forEach(sel => {
+        sel.onchange = () => {
+          const pid = sel.dataset.variantSelect;
+          const text = (DATA.cards.find(c => c.post_id === pid)?.variants || {})[sel.value] || '';
+          setCardState(pid, { chosen_variant: sel.value });
+          const ta = document.querySelector(`[data-posted-comment="${pid}"]`);
+          if (ta && !ta.value.trim()) ta.value = text;
+        };
+      });
+      document.querySelectorAll('[data-posted-comment]').forEach(ta => {
+        ta.oninput = () => setDraft(ta.dataset.postedComment, { posted_comment: ta.value });
+      });
+      document.querySelectorAll('[data-author-reply]').forEach(ta => {
+        ta.oninput = () => setDraft(ta.dataset.authorReply, { author_reply: ta.value });
+      });
+      document.querySelectorAll('[data-generate-reply]').forEach(btn => {
+        btn.onclick = () => generateReply(btn.dataset.generateReply);
+      });
+      document.querySelectorAll('[data-mark-reply-posted]').forEach(btn => {
+        btn.onclick = () => markReplyPosted(btn.dataset.markReplyPosted);
+      });
+      document.querySelectorAll('[data-reply-panel]').forEach(panel => {
+        panel.addEventListener('toggle', () => {
+          const pid = panel.dataset.replyPanel;
+          if (panel.open) openReplyPanels.add(pid); else openReplyPanels.delete(pid);
+        });
+      });
+    }
+
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.onclick = () => {
+        filters[chip.dataset.filter] = chip.dataset.value;
+        document.querySelectorAll(`.chip[data-filter="${chip.dataset.filter}"]`).forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        focusIndex = 0;
+        render();
+      };
+    });
+    document.getElementById('sort-by').onchange = e => { sortBy = e.target.value; render(); };
+    document.getElementById('search-box').oninput = e => { searchQuery = e.target.value; focusIndex = 0; render(); };
+    document.getElementById('day-picker').onchange = e => switchDay(e.target.value);
+    document.getElementById('day-prev').onclick = () => shiftDay(1);
+    document.getElementById('day-next').onclick = () => shiftDay(-1);
+
+    const filterPanel = document.getElementById('filter-panel');
+    if (localStorage.getItem('inbox-filters-open') === '0') filterPanel.removeAttribute('open');
+    filterPanel.addEventListener('toggle', () => {
+      localStorage.setItem('inbox-filters-open', filterPanel.open ? '1' : '0');
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        document.getElementById('search-box').focus();
+        return;
+      }
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+      const card = visibleCards[focusIndex];
+      if (!card) return;
+      const pid = card.post_id;
+      if (e.key === 'j') { focusIndex = Math.min(focusIndex + 1, visibleCards.length - 1); render(); e.preventDefault(); }
+      if (e.key === 'k') { focusIndex = Math.max(focusIndex - 1, 0); render(); e.preventDefault(); }
+      if (e.key >= '1' && e.key <= '5') { copyVariant(pid, 'ABCDE'[e.key - 1]); e.preventDefault(); }
+      if (e.key === 'o') { window.open(card.post_url, '_blank'); e.preventDefault(); }
+      if (e.key === 'c' && cardState(pid).status !== 'completed') {
+        const cs = cardState(pid);
+        setCardState(pid, { status: 'completed', chosen_variant: cs.chosen_variant || cs.last_copied || 'A', completed_at: new Date().toISOString() });
+        e.preventDefault();
+      }
+      if (e.key === 's' && cardState(pid).status === 'unread') {
+        setCardState(pid, { status: 'skipped', skipped_at: new Date().toISOString() });
+        e.preventDefault();
+      }
+      if (e.key === 'r' && cardState(pid).status === 'completed') {
+        openReplyPanels.add(pid);
+        render();
+        e.preventDefault();
+      }
+      if (e.key === '[') { shiftDay(1); e.preventDefault(); }
+      if (e.key === ']') { shiftDay(-1); e.preventDefault(); }
+    });
+
+    checkServer().then(() => { initDayPicker(); render(); });
+  </script>
+</body>
+</html>

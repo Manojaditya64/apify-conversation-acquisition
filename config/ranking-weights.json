@@ -1,0 +1,11 @@
+{
+  "zelitho_alignment": 0.25,
+  "icp_audience_likelihood": 0.20,
+  "contribution_opportunity": 0.20,
+  "room_to_stand_out": 0.15,
+  "traction_urgency": 0.10,
+  "profile_visit_potential": 0.10,
+  "min_score_to_queue": 35,
+  "saturation_penalty_threshold": 0.6,
+  "saturation_room_max": 40
+}

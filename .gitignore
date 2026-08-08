@@ -1,0 +1,13 @@
+.env
+storage/conversation-acquisition/*.csv
+storage/conversation-acquisition/*.json
+storage/conversation-acquisition/logs/
+storage/conversation-acquisition/conversations/
+storage/conversation-acquisition/inbox.html
+storage/conversation-acquisition/scrape-raw-*.json
+storage/icp-warm/
+data/influencer-feed/*.json
+!data/influencer-feed.example.json
+__pycache__/
+*.pyc
+.venv/
