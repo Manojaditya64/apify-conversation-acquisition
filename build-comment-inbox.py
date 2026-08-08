@@ -1,4 +1,4 @@
-"""
+﻿"""
 Build self-contained comment inbox HTML from queue CSV + conversation JSON.
 
 Usage:
@@ -25,7 +25,7 @@ TEMPLATE_PATH = PROJECT_ROOT / "templates" / "comment-inbox.template.html"
 INBOX_HTML = OUT_DIR / "inbox.html"
 
 SCORE_KEYS = [
-    "zelitho_alignment",
+    "brand_alignment",
     "icp_audience_likelihood",
     "contribution_opportunity",
     "room_to_stand_out",
@@ -343,7 +343,7 @@ def main() -> int:
         f"(default {data['default_date']}: {data['card_count']} cards, "
         f"{data['keyword_count']} keyword, {data['icp_count']} ICP) -> {INBOX_HTML}"
     )
-    print(f"Open: {OUT_DIR / 'Open Inbox.cmd'}")
+    print(f"Open: {OUT_DIR / 'inbox.html'}")
     return 0
 
 

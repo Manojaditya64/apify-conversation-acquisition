@@ -1,4 +1,4 @@
-"""
+﻿"""
 Deterministic post brief — routes comment generation to the post's actual topic.
 
 No extra LLM calls. Used by intelligence calibration and comment generation.
@@ -193,7 +193,7 @@ def build_post_brief(post: dict, intel: dict | None = None) -> dict:
     if their_companies:
         forbidden.append(
             f"You are NOT at {' / '.join(their_companies)}. "
-            "React as external peer; use zelitho.com or my own site for your stories."
+            "React as external peer; use the client product.com or my own site for your stories."
         )
     if post_type not in ("publisher_economics", "general") and not re.search(
         r"\b(citation|geo|aeo|ai visibility|answer engine|llm seo)\b", content, re.I

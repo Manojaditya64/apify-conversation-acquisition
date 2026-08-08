@@ -1,4 +1,4 @@
-"""Lightweight English detection for post filtering (no external deps)."""
+﻿"""Lightweight English detection for post filtering (no external deps)."""
 from __future__ import annotations
 
 import re

@@ -1,10 +1,10 @@
-# Apify conversation acquisition pipeline
+﻿# Apify conversation acquisition pipeline
 
 Daily LinkedIn comment queue built around [harvestapi/linkedin-post-search](https://apify.com/harvestapi/linkedin-post-search).
 
 **Flow:** Apify scout (keyword search) → merge local influencer JSON → Python hard filters → LLM intelligence → composite rank → thread enrich → 5 comment variants → CSV + HTML inbox.
 
-Companion article: [How I built a daily LinkedIn comment queue with one Apify Actor and a Python intelligence pipeline](https://github.com/Manojaditya64/apify-conversation-acquisition) (Apify Content Program).
+Companion article: [How we built a daily LinkedIn comment queue for a B2B client](https://github.com/Manojaditya64/apify-conversation-acquisition) (Apify Content Program).
 
 ## Setup
 

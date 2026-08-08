@@ -1,4 +1,4 @@
-# LinkedIn Conversation Acquisition — Room Comment Brief
+﻿# LinkedIn Conversation Acquisition — Room Comment Brief
 
 **Purpose:** Capture attention from **readers** in someone else's post thread. KPIs = **replies, profile visits, follower growth** — not likes.
 
@@ -20,7 +20,7 @@ Read post opening hook → one surprising observation → brief evidence from ex
 leave curiosity open → stop
 ```
 
-**Zelitho lane topics:** AI search, GEO, AEO, AI SEO, LLM SEO, SEO, AI content, content marketing, AI visibility, citations, zero-click, content ops.
+**the client product lane topics:** AI search, GEO, AEO, AI SEO, LLM SEO, SEO, AI content, content marketing, AI visibility, citations, zero-click, content ops.
 
 **Skip:** hiring, recruiters, irrelevant news, obvious promo, career posts, empty takes.
 
@@ -35,8 +35,8 @@ leave curiosity open → stop
 | One idea | One pattern interrupt per comment |
 | No praise openers | Never start with Great post / Love this / Well said |
 | No recap | Never summarise the author's thesis |
-| No pitch | No Zelitho name, links, DM, trial |
-| Proof | **Variant C only** — 10K citations, ~50 posts, zelitho.com |
+| No pitch | No the client product name, links, DM, trial |
+| Proof | **Variant C only** — 10K citations, ~50 posts, the client product.com |
 | Refinement | Diversify openings/endings; vary evidence; one failure across set |
 | V4 | Different lesson per variant; micro story; discovering not teaching |
 | Tone | Founder thinking out loud — not consultant, agency, or research report |

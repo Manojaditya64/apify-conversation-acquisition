@@ -1,4 +1,4 @@
-"""
+﻿"""
 Deterministic comment inspector + DeepSeek repair loop for LinkedIn room comments.
 
 Usage:
@@ -59,7 +59,7 @@ POST_IS_CONTENT_TOPIC_RE = re.compile(
     re.I,
 )
 ALLOWED_PROOF_PHRASES = (
-    "zelitho.com",
+    "client-site.example.com",
     "on my own site",
     "on our own site",
     "in our stack",
@@ -85,11 +85,11 @@ AUTHOR_ADDRESS_RE = re.compile(
 )
 PITCH_RE = re.compile(
     r"\b(dm me|book a (?:call|demo)|schedule a demo|free trial|"
-    r"link in (?:bio|comments)|check out my|sign up|register now|try zelitho)\b",
+    r"link in (?:bio|comments)|check out my|sign up|register now|try the client product)\b",
     re.I,
 )
-ZELITHO_PRODUCT_PITCH_RE = re.compile(
-    r"\bzelitho\b(?!\.com)",
+CLIENT_PRODUCT_PITCH_RE = re.compile(
+    r"\bthe client product\b(?!\.com)",
     re.I,
 )
 GENERIC_OPENER_RE = re.compile(
@@ -187,8 +187,8 @@ OPS_JARGON_TERMS = (
     "dedup",
 )
 STOCK_C_OPENER_RE = re.compile(
-    r"^(in our stack|running this on zelitho\.com|on zelitho\.com:?\s|"
-    r"we run this on zelitho\.com|we run this on zelitho|"
+    r"^(in our stack|running this on the client product\.com|on the client product\.com:?\s|"
+    r"we run this on the client product\.com|we run this on the client product|"
     r"we run this daily on our own site|running this daily on our own site)",
     re.I,
 )
@@ -296,7 +296,7 @@ GENERIC_CITATION_PLAYBOOK_RE = re.compile(
 PROOF_ARTIFACTS_RE = re.compile(
     r"\b(\+?10k|10,?000)\s*(?:ai\s+)?citations?|"
     r"~\s*50\s+posts?|50\s+system[- ]generated|"
-    r"zelitho\.com|\bzelitho\b|"
+    r"the client product\.com|\bthe client product\b|"
     r"system-generated posts?|daily experiment\b",
     re.I,
 )
@@ -746,8 +746,8 @@ def lint_comment(
         failures.append("author_address")
     if PITCH_RE.search(text):
         failures.append("pitch_or_cta")
-    if ZELITHO_PRODUCT_PITCH_RE.search(lower):
-        failures.append("zelitho_product_pitch")
+    if CLIENT_PRODUCT_PITCH_RE.search(lower):
+        failures.append("the client product_product_pitch")
     if GENERIC_OPENER_RE.search(text):
         failures.append("generic_opener")
     if SLOGAN_RE.search(lower):
@@ -1029,8 +1029,8 @@ def repair_prompt(failures: list[str], comment: str, context: dict) -> str:
     their_cos = context.get("author_companies") or []
     return json.dumps({
         "task": (
-            "Rewrite as Manojaditya Nadar — external peer, not the post author. "
-            f"Fix failed checks. {min_w}–120 words. React to their post; use YOUR experience on zelitho.com or my own site."
+            "Rewrite as client spokesperson — external peer, not the post author. "
+            f"Fix failed checks. {min_w}–120 words. React to their post; use YOUR experience on client-site.example.com or my own site."
         ),
         "failed_checks": failures,
         "original_comment": comment,
@@ -1042,13 +1042,13 @@ def repair_prompt(failures: list[str], comment: str, context: dict) -> str:
             "Never write 'at [their company], we...'",
             "Do not quote their article headline or paste their hashtags",
             "Proof only in variant C",
-            "No em dashes, no invented stats, no Zelitho product pitch",
+            "No em dashes, no invented stats, no the client product product pitch",
         ],
         "output": {"comment": "rewritten comment only"},
     }, indent=2)
 
 
-REPAIR_SYSTEM = """You fix LinkedIn room comments for Manojaditya Nadar.
+REPAIR_SYSTEM = """You fix LinkedIn room comments for client spokesperson.
 Return JSON only: {"comment": "..."}.
 External peer on someone else's thread — never claim their company as yours.
 Target 50–120 words. Proof only in variant C."""

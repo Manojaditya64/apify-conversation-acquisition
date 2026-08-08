@@ -1,4 +1,4 @@
-.env
+﻿.env
 storage/conversation-acquisition/*.csv
 storage/conversation-acquisition/*.json
 storage/conversation-acquisition/logs/

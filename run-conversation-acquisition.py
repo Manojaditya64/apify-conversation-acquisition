@@ -1,4 +1,4 @@
-"""
+﻿"""
 LinkedIn Conversation Acquisition Engine V2 — conversation intelligence pipeline.
 
 Scout → filter → pre-rank → AI intelligence → composite rank → thread enrich → style-aware comments.
@@ -143,7 +143,7 @@ QUEUE_V2_COLUMNS = [
     "full_name", "job_title", "company_name", "linkedin_url", "linkedin_public_id",
     "post_id", "post_url", "post_posted_at", "post_snippet",
     "engagement_likes", "engagement_comments", "engagement_velocity",
-    "priority_score", "zelitho_alignment", "icp_audience_likelihood",
+    "priority_score", "brand_alignment", "icp_audience_likelihood",
     "contribution_opportunity", "room_to_stand_out", "traction_urgency",
     "profile_visit_potential", "conversation_type", "author_persona",
     "recommended_comment_style", "intelligence_rationale",
@@ -183,9 +183,9 @@ def build_intelligence_system_prompt(intelligence: str, voice_context: str) -> s
         # Intelligence pass only needs mental model + ICP alignment slice
         parts.append(
             "\n---\n## Scorer context: who will comment\n\n"
-            "Manojaditya Nadar — Zelitho founder, systems architect, dogfoods content automation on zelitho.com. "
-            "Score contribution_opportunity by whether he can add a real operational insight from running "
-            "research→draft→publish pipelines and AI search visibility work — not generic SEO takes.\n"
+            "The client's spokesperson is an external operator peer in the AI search / content ops space. "
+            "Score contribution_opportunity by whether they can add a real operational insight, "
+            "not generic SEO takes.\n"
         )
     parts.append(INTELLIGENCE_SUFFIX)
     return "\n".join(parts)
@@ -537,7 +537,7 @@ def tag_search_query(post: dict, queries: list[str]) -> str:
 
 def load_ranking_weights() -> dict:
     defaults = {
-        "zelitho_alignment": 0.25,
+        "brand_alignment": 0.25,
         "icp_audience_likelihood": 0.20,
         "contribution_opportunity": 0.20,
         "room_to_stand_out": 0.15,
@@ -555,7 +555,7 @@ def load_ranking_weights() -> dict:
 
 def composite_priority(intel: dict, weights: dict) -> float:
     total = 0.0
-    for key in ("zelitho_alignment", "icp_audience_likelihood", "contribution_opportunity",
+    for key in ("brand_alignment", "icp_audience_likelihood", "contribution_opportunity",
                 "room_to_stand_out", "traction_urgency", "profile_visit_potential"):
         w = weights.get(key, 0)
         total += w * float(intel.get(key) or 0)
@@ -1103,7 +1103,7 @@ def build_queue_row_v2(item: dict, run_date: str) -> dict:
         "engagement_comments": eng.get("comments") or 0,
         "engagement_velocity": item.get("engagement_velocity") or 0,
         "priority_score": item.get("priority_score") or 0,
-        "zelitho_alignment": intel.get("zelitho_alignment") or 0,
+        "brand_alignment": intel.get("brand_alignment") or 0,
         "icp_audience_likelihood": intel.get("icp_audience_likelihood") or 0,
         "contribution_opportunity": intel.get("contribution_opportunity") or 0,
         "room_to_stand_out": intel.get("room_to_stand_out") or 0,
@@ -1424,7 +1424,7 @@ def run_v2_pipeline(args: argparse.Namespace, env: dict[str, str]) -> int:
 
     print("\nDone (V2).")
     print(f"  Queue: {queue_path}")
-    print(f"  Inbox: double-click {OUT_DIR / 'Open Inbox.cmd'}")
+    print(f"  Inbox: open {OUT_DIR / 'inbox.html'} in a browser")
     print(f"  Conversations: {CONVERSATIONS_DIR}")
     print(f"  Summary: {summary_path}")
     return 0

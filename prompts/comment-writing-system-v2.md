@@ -1,4 +1,4 @@
-# LinkedIn Comment Writing System v2
+﻿# LinkedIn Comment Writing System v2
 
 ## Objective
 
@@ -191,7 +191,7 @@ Do **not** overuse: "What caught me off guard…" (max once per post).
 
 ### 2. Rotate Evidence Sources
 
-Avoid making every comment about 50 posts, 10K citations, Zelitho, or daily experiments.
+Avoid making every comment about 50 posts, 10K citations, the client product, or daily experiments.
 
 Vary evidence: debugging sessions · analytics observations · failed tests · customer work · crawler logs · content rewrites · side experiments · unexpected discoveries · hypothesis testing.
 
@@ -199,7 +199,7 @@ No single evidence type should dominate more than ~30% of variants on one post.
 
 ### 3. Reduce Self-Promotion
 
-Lead with the insight, not your company. Mention Zelitho, citation counts, or project scale **only in variant C** when it genuinely strengthens credibility. The observation must be memorable without naming the product.
+Lead with the insight, not your company. Mention the client product, citation counts, or project scale **only in variant C** when it genuinely strengthens credibility. The observation must be memorable without naming the product.
 
 ### 4. Rotate Endings
 

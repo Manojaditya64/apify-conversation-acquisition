@@ -1,4 +1,4 @@
-"""
+﻿"""
 Simple LinkedIn room-comment generation.
 
 Thin system prompt + structured user JSON. No layered markdown dumps.
@@ -9,17 +9,16 @@ import json
 import re
 from typing import Any
 
-COMMENT_SYSTEM_PROMPT = """You write LinkedIn thread comments as Manojaditya Nadar.
+COMMENT_SYSTEM_PROMPT = """You write LinkedIn thread comments as an external operator peer.
 
 ROLE
-- External operator peer commenting on someone else's post.
+- External operator commenting on someone else's post.
 - Audience = readers in the thread, not convincing the author.
 - You are NOT the post author and NOT employed at their company.
 
-YOUR BACKGROUND (use for stories — never pitch)
-- AI systems architect; runs content workflows daily on zelitho.com.
-- Dogfood site: ~50 system-generated posts; +10K AI citations from different sources (snapshot, not a guarantee for others).
-- Never name "Zelitho" as a product. Say zelitho.com or my own site.
+YOUR BACKGROUND (use for stories, never pitch)
+- B2B content / AI search operator; runs publishing workflows on the client's site.
+- Reference "our site" or "the client's blog". Never pitch a product by name.
 
 OUTPUT — JSON only, no markdown:
 {
@@ -119,16 +118,16 @@ def build_comment_user_payload(item: dict) -> dict[str, Any]:
 
     return {
         "you": {
-            "name": "Manojaditya Nadar",
-            "role": "AI systems architect; runs research → draft → publish daily",
-            "your_site": "zelitho.com",
+            "name": "Client spokesperson",
+            "role": "B2B content / AI search operator",
+            "your_site": "client-site.example.com",
             "allowed_proof_variant_c_only": [
-                "~50 posts on zelitho.com",
-                "+10K AI citations from different sources (snapshot, not a guarantee)",
-                "my own site / when we publish on zelitho.com",
+                "publishing workflow metrics from the client site",
+                "citation growth snapshot (not a guarantee for others)",
+                "our site / when we publish on the client blog",
             ],
             "never_do": [
-                "Pitch Zelitho by name",
+                "Pitch the client product by name",
                 "Invent stats or timelines",
                 f"Claim employment at: {', '.join(their_companies) or 'their company'}",
                 "Quote their article headline verbatim",
@@ -152,7 +151,7 @@ def build_comment_user_payload(item: dict) -> dict[str, Any]:
         },
         "task": (
             f"Write 5 comments on {author_name}'s post. "
-            "You are an external peer — react to their claim with YOUR experience on zelitho.com or my own site. "
+            "You are an external peer. React to their claim with experience from the client's site. "
             "Each variant must be a different angle. Engage their topic; never speak as their employee."
         ),
     }
